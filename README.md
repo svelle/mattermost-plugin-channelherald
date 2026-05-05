@@ -1,223 +1,114 @@
-# Plugin Starter Template
+# Channel Herald
 
-[![Build Status](https://github.com/mattermost/mattermost-plugin-starter-template/actions/workflows/ci.yml/badge.svg)](https://github.com/mattermost/mattermost-plugin-starter-template/actions/workflows/ci.yml)
-[![E2E Status](https://github.com/mattermost/mattermost-plugin-starter-template/actions/workflows/e2e.yml/badge.svg)](https://github.com/mattermost/mattermost-plugin-starter-template/actions/workflows/e2e.yml)
+[![Build Status](https://github.com/svelle/mattermost-plugin-channelherald/actions/workflows/ci.yml/badge.svg)](https://github.com/svelle/mattermost-plugin-channelherald/actions/workflows/ci.yml)
 
-This plugin serves as a starting point for writing a Mattermost plugin. Feel free to base your own plugin off this repository.
+Channel Herald posts a notification whenever a new public channel is created in Mattermost. Notifications are sent by a dedicated bot and include a clickable link to the new channel, the creator's username, and optionally the channel's purpose. Each team can be configured independently.
 
-To learn more about plugins, see [our plugin documentation](https://developers.mattermost.com/extend/plugins/).
+## Features
 
-This template requires node v16 and npm v8. You can download and install nvm to manage your node versions by following the instructions [here](https://github.com/nvm-sh/nvm). Once you've setup the project simply run `nvm i` within the root folder to use the suggested version of node.
+- Notifies a chosen channel whenever a new public channel is created in a team
+- Notification message format: `@username just created a new channel: [Channel Name](url)`
+- Optionally includes the channel purpose beneath the message
+- Optionally notifies when a private channel is made public
+- Configured per-team — teams without a configured notification channel receive no notifications
+- Uses absolute URLs so links work in email and mobile notifications
 
-## Getting Started
-Use GitHub's template feature to make a copy of this repository by clicking the "Use this template" button.
+## Installation
 
-Alternatively shallow clone the repository matching your plugin name:
-```
-git clone --depth 1 https://github.com/mattermost/mattermost-plugin-starter-template com.example.my-plugin
-```
+1. Download the latest release from the [releases page](https://github.com/svelle/mattermost-plugin-channelherald/releases).
+2. In Mattermost, go to **System Console → Plugins → Plugin Management** and upload the `.tar.gz` file.
+3. Enable the plugin.
 
-Note that this project uses [Go modules](https://github.com/golang/go/wiki/Modules). Be sure to locate the project outside of `$GOPATH`.
+## Configuration
 
-Edit the following files:
-1. `plugin.json` with your `id`, `name`, and `description`:
-```json
-{
-    "id": "com.example.my-plugin",
-    "name": "My Plugin",
-    "description": "A plugin to enhance Mattermost."
-}
-```
+Go to **System Console → Plugins → Channel Herald**.
 
-2. `go.mod` with your Go module path, following the `<hosting-site>/<repository>/<module>` convention:
-```
-module github.com/example/my-plugin
-```
+For each team you will see:
 
-3. Replace all occurrences of `github.com/mattermost/mattermost-plugin-starter-template` in the codebase with your Go module path:
-```bash
-sed -i '' 's|github.com/mattermost/mattermost-plugin-starter-template|github.com/example/my-plugin|g' server/*.go
-```
+| Setting | Description |
+|---|---|
+| **Enable notifications for this team** | Turn notifications on or off for the team. |
+| **Notification channel name** | The URL slug of the channel to post notifications in (e.g. `town-square`). The channel must already exist in that team. |
+| **Include channel purpose in the notification** | Appends the new channel's purpose as a blockquote beneath the notification message. |
+| **Also notify when a private channel is made public** | Posts a notification when an existing private channel is converted to public. |
 
-4. Replace `.golangci.yml` `local-prefixes` attribute with your Go module path:
-```yml
-linters-settings:
-  # [...]
-  goimports:
-    local-prefixes: github.com/example/my-plugin
-```
+Save the settings. The plugin will immediately start watching for new channels.
 
-5. Build your plugin:
-```
-make
-```
+> **Tip:** Create a dedicated channel such as `new-channels` for notifications to keep them easy to find and mute if needed.
 
-This will produce a single plugin file (with support for multiple architectures) for upload to your Mattermost server:
+## Notification examples
 
-```
-dist/com.example.my-plugin.tar.gz
-```
+New channel created:
+
+> @alice just created a new channel: [Marketing 2026](https://your.server/team-name/channels/marketing-2026)
+
+With purpose enabled:
+
+> @alice just created a new channel: [Marketing 2026](https://your.server/team-name/channels/marketing-2026)
+> Campaign planning and asset tracking for the 2026 fiscal year.
+
+Private channel made public:
+
+> @bob just made a new channel public: [Engineering Roadmap](https://your.server/team-name/channels/engineering-roadmap)
 
 ## Development
 
-To avoid having to manually install your plugin, build and deploy your plugin using one of the following options. In order for the below options to work, you must first enable plugin uploads via your config.json or API and restart Mattermost.
+### Prerequisites
 
-```json
-    "PluginSettings" : {
-        ...
-        "EnableUploads" : true
-    }
+- Go 1.22+
+- Node 20+ / npm 10+
+- A running Mattermost server
+
+### Building
+
+```bash
+make
 ```
 
-### Development guidance
+This produces `dist/com.mattermost.plugin-channelherald.tar.gz` ready for upload.
 
-1. Fewer packages is better: default to the main package unless there's good reason for a new package.
+### Deploying to a local server
 
-2. Coupling implies same package: don't jump through hoops to break apart code that's naturally coupled.
-
-3. New package for a new interface: a classic example is the sqlstore with layers for monitoring performance, caching and mocking.
-
-4. New package for upstream integration: a discrete client package for interfacing with a 3rd party is often a great place to break out into a new package
-
-### Modifying the server boilerplate
-
-The server code comes with some boilerplate for creating an api, using slash commands, accessing the kvstore and using the cluster package for jobs.
-
-#### Api
-
-api.go implements the ServeHTTP hook which allows the plugin to implement the http.Handler interface. Requests destined for the `/plugins/{id}` path will be routed to the plugin. This file also contains a sample `HelloWorld` endpoint that is tested in plugin_test.go.
-
-#### Command package
-
-This package contains the boilerplate for adding a slash command and an instance of it is created in the `OnActivate` hook in plugin.go. If you don't need it you can delete the package and remove any reference to `commandClient` in plugin.go. The package also contains an example of how to create a mock for testing.
-
-#### KVStore package
-
-This is a central place for you to access the KVStore methods that are available in the `pluginapi.Client`. The package contains an interface for you to define your methods that will wrap the KVStore methods. An instance of the KVStore is created in the `OnActivate` hook.
-
-### Deploying with Local Mode
-
-If your Mattermost server is running locally, you can enable [local mode](https://docs.mattermost.com/administration/mmctl-cli-tool.html#local-mode) to streamline deploying your plugin. Edit your server configuration as follows:
+Enable plugin uploads and local mode in your Mattermost server config:
 
 ```json
 {
+    "PluginSettings": {
+        "EnableUploads": true
+    },
     "ServiceSettings": {
-        ...
         "EnableLocalMode": true,
         "LocalModeSocketLocation": "/var/tmp/mattermost_local.socket"
-    },
+    }
 }
 ```
 
-and then deploy your plugin:
-```
-make deploy
-```
+Then deploy:
 
-You may also customize the Unix socket path:
 ```bash
-export MM_LOCALSOCKETPATH=/var/tmp/alternate_local.socket
 make deploy
 ```
 
-If developing a plugin with a webapp, watch for changes and deploy those automatically:
+To watch for changes and redeploy automatically:
+
 ```bash
 export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_TOKEN=j44acwd8obn78cdcx7koid4jkr
+export MM_ADMIN_TOKEN=<your-token>
 make watch
 ```
 
-### Deploying with credentials
+### Running tests
 
-Alternatively, you can authenticate with the server's API with credentials:
 ```bash
-export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_USERNAME=admin
-export MM_ADMIN_PASSWORD=password
-make deploy
+make test
 ```
 
-or with a [personal access token](https://docs.mattermost.com/developer/personal-access-tokens.html):
+### Releasing
+
+Tag the commit and push — CI will build and attach the plugin bundle to the GitHub release automatically.
+
 ```bash
-export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_TOKEN=j44acwd8obn78cdcx7koid4jkr
-make deploy
+make patch   # bump patch version and tag
+make minor   # bump minor version and tag
+make major   # bump major version and tag
 ```
-
-### Releasing new versions
-
-The version of a plugin is determined at compile time, automatically populating a `version` field in the [plugin manifest](plugin.json):
-* If the current commit matches a tag, the version will match after stripping any leading `v`, e.g. `1.3.1`.
-* Otherwise, the version will combine the nearest tag with `git rev-parse --short HEAD`, e.g. `1.3.1+d06e53e1`.
-* If there is no version tag, an empty version will be combined with the short hash, e.g. `0.0.0+76081421`.
-
-To disable this behaviour, manually populate and maintain the `version` field.
-
-## How to Release
-
-To trigger a release, follow these steps:
-
-1. **For Patch Release:** Run the following command:
-    ```
-    make patch
-    ```
-   This will release a patch change.
-
-2. **For Minor Release:** Run the following command:
-    ```
-    make minor
-    ```
-   This will release a minor change.
-
-3. **For Major Release:** Run the following command:
-    ```
-    make major
-    ```
-   This will release a major change.
-
-4. **For Patch Release Candidate (RC):** Run the following command:
-    ```
-    make patch-rc
-    ```
-   This will release a patch release candidate.
-
-5. **For Minor Release Candidate (RC):** Run the following command:
-    ```
-    make minor-rc
-    ```
-   This will release a minor release candidate.
-
-6. **For Major Release Candidate (RC):** Run the following command:
-    ```
-    make major-rc
-    ```
-   This will release a major release candidate.
-
-## Q&A
-
-### How do I make a server-only or web app-only plugin?
-
-Simply delete the `server` or `webapp` folders and remove the corresponding sections from `plugin.json`. The build scripts will skip the missing portions automatically.
-
-### How do I include assets in the plugin bundle?
-
-Place them into the `assets` directory. To use an asset at runtime, build the path to your asset and open as a regular file:
-
-```go
-bundlePath, err := p.API.GetBundlePath()
-if err != nil {
-    return errors.Wrap(err, "failed to get bundle path")
-}
-
-profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile_image.png"))
-if err != nil {
-    return errors.Wrap(err, "failed to read profile image")
-}
-
-if appErr := p.API.SetProfileImage(userID, profileImage); appErr != nil {
-    return errors.Wrap(err, "failed to set profile image")
-}
-```
-
-### How do I build the plugin with unminified JavaScript?
-Setting the `MM_DEBUG` environment variable will invoke the debug builds. The simplist way to do this is to simply include this variable in your calls to `make` (e.g. `make dist MM_DEBUG=1`).
