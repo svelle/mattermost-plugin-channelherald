@@ -93,18 +93,18 @@ const TeamChannelSettings: React.FC<Props> = ({id, value, disabled, onChange, se
     const [error, setError] = useState('');
 
     useEffect(() => {
-        fetch('/api/v4/teams?per_page=200', {credentials: 'include'})
-            .then((res) => {
+        fetch('/api/v4/teams?per_page=200', {credentials: 'include'}).
+            then((res) => {
                 if (!res.ok) {
                     throw new Error(`Failed to fetch teams: ${res.status}`);
                 }
                 return res.json();
-            })
-            .then((data: Team[]) => {
+            }).
+            then((data: Team[]) => {
                 setTeams(data);
                 setLoading(false);
-            })
-            .catch((err: Error) => {
+            }).
+            catch((err: Error) => {
                 setError(err.message);
                 setLoading(false);
             });

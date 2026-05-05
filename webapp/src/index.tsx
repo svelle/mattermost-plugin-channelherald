@@ -6,9 +6,9 @@ import type {Store} from 'redux';
 
 import type {GlobalState} from '@mattermost/types/store';
 
-import type {PluginRegistry} from 'types/mattermost-webapp';
-
 import TeamChannelSettings from 'components/team_channel_settings';
+
+import type {PluginRegistry} from 'types/mattermost-webapp';
 
 export default class Plugin {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
