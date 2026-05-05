@@ -1,9 +1,9 @@
 {
-    "id": "com.mattermost.plugin-starter-template",
-    "name": "Plugin Starter Template",
-    "description": "This plugin serves as a starting point for writing a Mattermost plugin.",
-    "homepage_url": "https://github.com/mattermost/mattermost-plugin-starter-template",
-    "support_url": "https://github.com/mattermost/mattermost-plugin-starter-template/issues",
+    "id": "com.mattermost.plugin-channelherald",
+    "name": "Channel Herald",
+    "description": "Posts a notification in a configured channel whenever a new public channel is created.",
+    "homepage_url": "https://github.com/svelle/mattermost-plugin-channelherald",
+    "support_url": "https://github.com/svelle/mattermost-plugin-channelherald/issues",
     "icon_path": "assets/starter-template-icon.svg",
     "min_server_version": "6.2.1",
     "server": {
@@ -19,8 +19,15 @@
         "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
-        "header": "",
+        "header": "Configure Channel Herald. Set a notification channel per team to receive alerts when new public channels are created.",
         "footer": "",
-        "settings": []
+        "settings": [
+            {
+                "key": "TeamConfigs",
+                "type": "custom",
+                "display_name": "Team Notification Settings",
+                "help_text": "Configure the notification channel and options for each team."
+            }
+        ]
     }
 }
