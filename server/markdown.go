@@ -22,7 +22,10 @@ func escapeMarkdownPlainText(s string) string {
 		"~", "\\~",
 		"#", "\\#",
 		"|", "\\|",
+		"@", "\\@",
 	)
+	return replacer.Replace(s)
+}
 	return replacer.Replace(s)
 }
 
