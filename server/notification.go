@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 )
-
-// postTypeChannelConverted is the system post type Mattermost creates when a private channel is
-// made public. We watch for this in MessageHasBeenPosted to detect conversions.
-const postTypeChannelConverted = "system_channel_converted"
 
 // ChannelHasBeenCreated is invoked after a channel is created. We notify the configured channel
 // for the team when a new public channel is created.
@@ -24,7 +22,7 @@ func (p *Plugin) ChannelHasBeenCreated(c *plugin.Context, channel *model.Channel
 // MessageHasBeenPosted is invoked after a message is posted. We use it to detect when a private
 // channel has been converted to public via the system post Mattermost creates for that event.
 func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
-	if post.Type != postTypeChannelConverted {
+	if post.Type != model.PostTypeChangeChannelPrivacy || !post.IsSystemMessage() {
 		return
 	}
 
@@ -39,7 +37,13 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	cfg := p.getConfiguration()
-	teamConfig, ok := cfg.getTeamConfigs()[channel.TeamId]
+	teamConfigs, err := cfg.getTeamConfigs()
+	if err != nil {
+		p.API.LogError("Failed to parse TeamConfigs", "err", err.Error())
+		return
+	}
+
+	teamConfig, ok := teamConfigs[channel.TeamId]
 	if !ok || !teamConfig.Enabled || !teamConfig.NotifyOnConversion {
 		return
 	}
@@ -51,7 +55,13 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 // the team.
 func (p *Plugin) postChannelNotification(channel *model.Channel, actorUserID, action string) {
 	cfg := p.getConfiguration()
-	teamConfig, ok := cfg.getTeamConfigs()[channel.TeamId]
+	teamConfigs, err := cfg.getTeamConfigs()
+	if err != nil {
+		p.API.LogError("Failed to parse TeamConfigs", "err", err.Error())
+		return
+	}
+
+	teamConfig, ok := teamConfigs[channel.TeamId]
 	if !ok || !teamConfig.Enabled || teamConfig.ChannelName == "" {
 		return
 	}
@@ -78,24 +88,29 @@ func (p *Plugin) postChannelNotification(channel *model.Channel, actorUserID, ac
 		return
 	}
 
-	channelURL := fmt.Sprintf("%s/%s/channels/%s", *siteURL, team.Name, channel.Name)
+	channelURL, err := url.JoinPath(strings.TrimRight(*siteURL, "/"), team.Name, "channels", channel.Name)
+	if err != nil {
+		p.API.LogError("Failed to build channel URL", "err", err.Error())
+		return
+	}
+
+	displayName := escapeMarkdownLinkText(channel.DisplayName)
 
 	var message string
 	if actorUserID != "" {
 		actor, appErr := p.API.GetUser(actorUserID)
 		if appErr != nil {
 			p.API.LogError("Failed to get actor user", "user_id", actorUserID, "err", appErr.Error())
-			// Fall back to generic message rather than failing entirely.
-			message = fmt.Sprintf("A new channel was %s: [%s](%s)", action, channel.DisplayName, channelURL)
+			message = fmt.Sprintf("A new channel was %s: [%s](%s)", action, displayName, channelURL)
 		} else {
-			message = fmt.Sprintf("@%s just %s a new channel: [%s](%s)", actor.Username, action, channel.DisplayName, channelURL)
+			message = fmt.Sprintf("@%s just %s a new channel: [%s](%s)", actor.Username, action, displayName, channelURL)
 		}
 	} else {
-		message = fmt.Sprintf("A new channel was %s: [%s](%s)", action, channel.DisplayName, channelURL)
+		message = fmt.Sprintf("A new channel was %s: [%s](%s)", action, displayName, channelURL)
 	}
 
 	if teamConfig.ShowPurpose && channel.Purpose != "" {
-		message += fmt.Sprintf("\n> %s", channel.Purpose)
+		message += formatPurposeBlockquote(channel.Purpose)
 	}
 
 	post := &model.Post{

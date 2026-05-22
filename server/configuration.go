@@ -24,15 +24,17 @@ type configuration struct {
 }
 
 // getTeamConfigs parses TeamConfigs into a usable map.
-func (c *configuration) getTeamConfigs() map[string]TeamConfig {
+func (c *configuration) getTeamConfigs() (map[string]TeamConfig, error) {
 	if c.TeamConfigs == "" {
-		return make(map[string]TeamConfig)
+		return make(map[string]TeamConfig), nil
 	}
+
 	var configs map[string]TeamConfig
 	if err := json.Unmarshal([]byte(c.TeamConfigs), &configs); err != nil {
-		return make(map[string]TeamConfig)
+		return nil, errors.Wrap(err, "invalid TeamConfigs JSON")
 	}
-	return configs
+
+	return configs, nil
 }
 
 // Clone shallow copies the configuration.
@@ -77,6 +79,10 @@ func (p *Plugin) OnConfigurationChange() error {
 
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
+	}
+
+	if _, err := configuration.getTeamConfigs(); err != nil {
+		return err
 	}
 
 	p.setConfiguration(configuration)

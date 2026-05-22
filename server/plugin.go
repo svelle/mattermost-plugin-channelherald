@@ -3,7 +3,6 @@ package main
 import (
 	"sync"
 
-	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/pluginapi"
@@ -17,9 +16,6 @@ type Plugin struct {
 
 	// client is the Mattermost server API client.
 	client *pluginapi.Client
-
-	// router is the HTTP router for handling API requests.
-	router *mux.Router
 
 	// botUserID is the user ID of the plugin's bot account used to post notifications.
 	botUserID string
@@ -45,8 +41,6 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to ensure bot user")
 	}
 	p.botUserID = botUserID
-
-	p.router = p.initRouter()
 
 	return nil
 }
