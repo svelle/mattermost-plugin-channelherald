@@ -26,8 +26,6 @@ func escapeMarkdownPlainText(s string) string {
 	)
 	return replacer.Replace(s)
 }
-	return replacer.Replace(s)
-}
 
 func formatPurposeBlockquote(purpose string) string {
 	lines := strings.Split(purpose, "\n")

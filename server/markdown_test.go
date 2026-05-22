@@ -65,7 +65,7 @@ func TestFormatPurposeBlockquote(t *testing.T) {
 		{
 			name:  "mention and heading injection",
 			input: "@channel\n# Important",
-			want:  "\n> @channel\n> \\# Important",
+			want:  "\n> \\@channel\n> \\# Important",
 		},
 	}
 
