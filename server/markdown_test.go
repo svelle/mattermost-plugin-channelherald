@@ -32,6 +32,11 @@ func TestEscapeMarkdownLinkText(t *testing.T) {
 			input: `[test\[]`,
 			want:  `\[test\\\[\]`,
 		},
+		{
+			name:  "mention injection",
+			input: "@channel",
+			want:  "\\@channel",
+		},
 	}
 
 	for _, tt := range tests {

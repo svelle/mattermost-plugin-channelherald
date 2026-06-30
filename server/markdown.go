@@ -10,6 +10,7 @@ func escapeMarkdownLinkText(s string) string {
 		"\\", "\\\\",
 		"[", "\\[",
 		"]", "\\]",
+		"@", "\\@",
 	)
 	return replacer.Replace(s)
 }
